@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FairChain trading platform</title>
+    <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/gh/ethereum/web3.js/dist/web3.min.js"></script>
+</head>
+<body>
+<button type="reset" id="iyaye">Buy</button>
+<script>
+    var contractFCT;
+    var userAddress;
+    Web3 = require('web3') ;
+    var contractABI = [
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "from",
+                    "type": "address"
+                },
+                {
+                    "name": "tokens",
+                    "type": "uint256"
+                },
+                {
+                    "name": "token",
+                    "type": "address"
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
+                }
+            ],
+            "name": "receiveApproval",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ]
+
+
+    window.addEventListener('load', function() {
+
+        // Checking if Web3 has been injected by the browser (Mist/MetaMask)
+        if (typeof web3 !== 'undefined') {
+            // Use Mist/MetaMask's provider
+            web3 = new Web3(web3.currentProvider);
+            userAddress = web3.eth.accounts[0];
+            //window.alert("mm");
+        } else {
+            web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+            window.alert("You need to install metamask plugin (https://metamask.io/) and create an account to access the plateform. Please reload the page once you did it");
+        }
+
+        startAPP();
+
+
+
+
+
+
+
+    })
+
+    function startAPP() {
+        var contractAddress = "0x52e20cc4129abb446929031d40ada7ae476fdd79";
+        contractFCT = web3.eth.contract(contractABI, contractAddress);
+        //window.alert("startAPP executed");
+    }
+
+
+    function callBuy() {
+        //$("#txStatus").text("Confimation of the transaction on the blockchain. This may take a while...");
+        window.alert("buy exec")
+        return contractFCT.methods.buy()
+            .send({ from: userAddress, value: 10000})
+            .on("receipt", function(receipt) {
+               // $("#txStatus").text("Transaction done");
+            })
+            .on("error", function(error) {
+                //$("#txStatus").text(error);
+            });
+    }
+
+    document.getElementById("iyaye").onclick = callBuy ;
+</script>
+
+</body>
+</htm
