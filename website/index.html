@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+    <title>FairChain - invest in the real economy</title>
+
+<meta name="description" content="FairChain is a platform allowing anyone to invest in private equity funds in a secured and liquid way">
+<meta name="generator" content="Grapedrop">
+
+<!-- Apple Stuff -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="FairChain - invest in the real economy">
+
+<!-- Google / Search Engine Tags -->
+    <meta itemprop="name" content="FairChain - invest in the real economy">
+<meta itemprop="description" content="FairChain is a platform allowing anyone to invest in private equity funds in a secured and liquid way">
+<meta itemprop="image" content="">
+
+<!-- Facebook Meta Tags -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="">
+<meta property="og:description" content="">
+<meta property="og:image" content="">
+<meta property="og:url" content="http://FairChain-platform.grapedrop.com">
+
+<!-- Twitter Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+
+        
+        <link rel="icon" type="image/png" href="images/favicon.png">
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/lory.js/2.2.0/lory.min.js"></script>
+
+        
+        
+          <link rel="stylesheet" href="styles/base.css">
+          <link rel="stylesheet" href="styles/style.css">
+          
+    </head>
+
+    <body>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                overflow-x: hidden;
+            }
+        </style>
+        <img id="ipck" src="images/a4bda71af1e94981b2bfedd2b1684b7d_logo2.png"/><section id="i67k" class="gpd-section"><div id="i3mm" class="gpd-container"><div id="i5rt" class="row"><div id="ipz7" class="cell"><h1 id="iy2ig">Fund metrics<br></h1><div id="ihxpm" class="row"><div id="iutha" class="cell"><div data-tooltip="NAV + initial reserve + liquidity fees since inception" data-tooltip-length="fit" id="i29uz" class="tooltip-component"><div id="icdhx" class="gpd-text">Fund total value (eth)<br></div></div><div data-tooltip="Fund total value divided by the total number of shares" data-tooltip-length="fit" id="ihj1w" class="tooltip-component"><div id="ir68e" class="gpd-text">Value per share (eth)<br></div></div><div data-tooltip="Penalty applied on Value per share when purshasing/selling token. Penalize short term holders and remunerate long term investors" data-tooltip-length="fit" id="i1esk" class="tooltip-component"><div id="i8n7u" class="gpd-text">Liquidity fee (%)<br></div></div></div><div id="i8rgj" class="cell"><div id="fund_value" class="gpd-text">Insert your text <br></div><div id="share_value" class="gpd-text">Insert your text <br></div><div id="malus" class="gpd-text">Insert your text <br></div></div></div></div><div id="iwdt" class="cell"><h1 id="ipj1g">Order board<br></h1><form method="post" class="form"><div class="form-group"><label class="label">Token amount</label></div><input id="tokenField" type="number" placeholder="100" name="email" class="input"/><div class="form-group"><div class="row"><div class="cell"><button id="buyButton" type="reset" class="button">Buy</button></div><div class="cell"><button id="sellButton" type="reset" class="button">Sell</button></div></div></div><div data-form-state="error" id="i1xer" class="state-error">An error occurred on processing your request, try again!
+  </div><div data-form-state="success" id="i9jh8" class="state-success">Thanks! We received your request</div><div data-form-state="error" id="i4krg" class="state-error">An error occurred on processing your request, try again!</div></form></div><div id="ig4k" class="cell"><h1 id="ip54k">User dashboard<br></h1><div id="ibzxw" class="row"><div id="i5w5h" class="cell"><div data-tooltip="NAV + initial reserve + liquidity fees since inception" data-tooltip-length="fit" id="isj2n" class="tooltip-component"><div id="im5bx" class="gpd-text">FairChain token balance<br></div></div><div data-tooltip="Fund total value divided by the total number of shares" data-tooltip-length="fit" id="i5h73" class="tooltip-component"><div id="igw1f" class="gpd-text">Value in eth<br></div></div></div><div id="i2bbh" class="cell"><div id="user_balance" class="gpd-text">Insert your text <br></div><div id="user_value" class="gpd-text">Insert your text <br></div></div></div></div></div></div></section>
+        <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FairChain trading platform</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+</head>
+<body>
+<script>
+    let contractFCT = null;
+    var user;
+    var valoPart;
+    var lastOrderValueEth;
+    var tokenAmount;
+    let web3inst = null;
+    var contractAddress = "0x47ea5c319e6aa8cdc19cdd95e443b43f005f4573";
+    //import Web3 from 'web3';
+    var contractABI = [
+	{
+		"constant": false,
+		"inputs": [],
+		"name": "acceptOwnership",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "approve",
+		"outputs": [
+			{
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"name": "tokens",
+				"type": "uint256"
+			},
+			{
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "approveAndCall",
+		"outputs": [
+			{
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [],
+		"name": "buy",
+		"outputs": [],
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [],
+		"name": "calculFundValue",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [],
+		"name": "calculValoPart",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"name": "_from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"name": "_to",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "redeem",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_discount",
+				"type": "uint256"
+			}
+		],
+		"name": "setDiscount",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "transfer",
+		"outputs": [
+			{
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "Transfer",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"name": "tokenOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"name": "spender",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "Approval",
+		"type": "event"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "transferAnyERC20Token",
+		"outputs": [
+			{
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "from",
+				"type": "address"
+			},
+			{
+				"name": "to",
+				"type": "address"
+			},
+			{
+				"name": "tokens",
+				"type": "uint256"
+			}
+		],
+		"name": "transferFrom",
+		"outputs": [
+			{
+				"name": "success",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "_newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "constructor"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "_totalSupply",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "tokenOwner",
+				"type": "address"
+			},
+			{
+				"name": "spender",
+				"type": "address"
+			}
+		],
+		"name": "allowance",
+		"outputs": [
+			{
+				"name": "remaining",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "tokenOwner",
+				"type": "address"
+			}
+		],
+		"name": "balanceEntier",
+		"outputs": [
+			{
+				"name": "balance",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "balanceETH",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "tokenOwner",
+				"type": "address"
+			}
+		],
+		"name": "balanceOf",
+		"outputs": [
+			{
+				"name": "balance",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "decimals",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "discount",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "fundValue",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "initialReserve",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "name",
+		"outputs": [
+			{
+				"name": "",
+				"type": "string"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "NAV",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "newOwner",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "symbol",
+		"outputs": [
+			{
+				"name": "",
+				"type": "string"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "totalSupply",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "valoPart",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
+
+    //window.addEventListener('load', function() {
+
+        // Checking if Web3 has been injected by the browser (Mist/MetaMask)
+        if (typeof web3 !== 'undefined') {
+            // Use Mist/MetaMask's provider
+            web3inst = new Web3(web3.currentProvider);
+            web3inst.eth.getAccounts().then(accounts => { user = accounts[0] });
+            contractFCT = new web3inst.eth.Contract(contractABI, contractAddress);
+            console.log(contractFCT);
+            contractFCT.methods.valoPart().call(function(err, res){ valoPart = res; });
+          	refresh();
+
+        } else {
+            web3inst = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+            window.alert("You need to install metamask plugin (https://metamask.io/) and create an account to access the platform. Please reload the page once you did it, and log in your metamask account to buy and sell tokens");
+        }
+
+
+    function buy() {
+        if (user !== undefined) {
+            tokenAmount = document.getElementById("tokenField").value ;
+            lastOrderValueEth = valoPart*tokenAmount*(125/100); // il faut prendre en compte le malus qui va s'appliquer et le répercuter dans l'eth à envoyer
+            contractFCT.methods.buy()
+                .send({from: user, value: lastOrderValueEth})
+                .then(contractFCT.methods.valoPart()
+                    .call(function(err, res){ valoPart = res; }))
+                .then(refresh());
+        }
+        else {
+            window.alert("Please make sure to have the metamask extension installed AND activated (logged-in); If not, please login and reload the page");
+        }
+    }
+
+    function redeem() {
+        if (user !== undefined) {
+            tokenAmount = document.getElementById("tokenField").value ;
+            contractFCT.methods.redeem(tokenAmount)
+                .send({from: user})
+                .then(contractFCT.methods.valoPart()
+                    .call(function(err, res){ valoPart = res; }))
+                .then(refresh);
+        }
+        else {
+            window.alert("Please make sure to have the metamask extension installed AND activated (logged-in); If not, please login and reload the page");
+        }
+    }
+
+    function refresh() {
+        contractFCT.methods.fundValue().call(function(err, res){ document.getElementById("fund_value").innerHTML = res/(10**18); });
+   		contractFCT.methods.valoPart().call(function(err, res){ document.getElementById("share_value").innerHTML = res/(10**18); }); 
+      	contractFCT.methods.discount().call(function(err, res){ document.getElementById("malus").innerHTML = res; });
+      	contractFCT.methods.balanceEntier(user).call(function(err, res){ document.getElementById("user_balance").innerHTML = res; });
+		contractFCT.methods.balanceEntier(user).call(function(err, res){ document.getElementById("user_value").innerHTML = res*valoPart/(10**18); });
+    }
+    //penser à faire vidéo de démo pour éviter soucis ; choix du reseau de test
+
+
+    document.getElementById("buyButton").onclick = buy ;
+    document.getElementById("sellButton").onclick = redeem ;
+
+    setInterval(function() {
+        refresh();
+    }, 100);
+
+</script>
+
+                    <style>
+    a.page-brand-badge {
+        border-radius: 3px !important;
+        background-color: white !important;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.1);
+        padding: 5px 7px !important;
+        font-family: Helvetica, sans-serif !important;
+        font-size: 12px !important;
+        text-decoration: none !important;
+        color: #555 !important;
+        transition: box-shadow 0.25s !important;
+    }
+    a.page-brand-badge:hover {
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.1), 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+</style>
+<a href="https://grapedrop.com" target="_blank" class="page-brand-badge"
+    style="bottom: 10px !important; left: 10px !important; display: block !important; opacity: 1 !important; visibility: visible !important; position: fixed !important;">
+    <svg class="logo-circ" viewBox="0 0 500 500" version="1.1" xmlns="http://www.w3.org/2000/svg" style="width:13px; height:13px; vertical-align: middle; margin-right: 3px; margin-top: -2px;">
+            <defs>
+                <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="linearGradient-2">
+                    <stop stop-color="#EAB3D5" offset="0%"></stop>
+                    <stop stop-color="#D06E9A" offset="100%"></stop>
+                </linearGradient>
+            </defs>
+            <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                <g>
+                    <circle fill="url(#linearGradient-2)" cx="251" cy="251" r="250"></circle>
+                    <path d="M244.664082,104.558858 L162.460627,248.205767 C145.186418,278.574619 143.852224,317.189676 162.460627,349.706818 C190.433829,398.588565 252.659,415.493783 301.444357,387.464755 C350.229714,359.436081 367.101474,297.087868 339.127919,248.205413 L256.924464,104.558858 C254.209082,99.813714 247.379111,99.813714 244.664082,104.558858 Z" fill="#FFFFFF" fill-rule="nonzero"></path>
+                </g>
+            </g>
+        </svg>
+        Made with Grapedrop
+</a>
+            </body>
+
+    <script>
+        var formStateName = 'data-form-state';
+        var formStateEls = $('[' + formStateName + ']');
+        formStateEls.hide();
+        $('form').submit(function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var action = (this.getAttribute('action') || '').trim();
+            var formData = new FormData(this);
+            var chkSelected = {};
+            var name = this.getAttribute('name');
+            name && formData.append('__name', name);
+
+            form.find('[type=radio], [type=checkbox]').each(function(item) {
+                var chkName = this.name;
+                if (this.checked) {
+                    chkSelected[chkName] = 1;
+                    return;
+                }
+                chkSelected[chkName] = 0;
+            });
+
+            for (var chk in chkSelected) {
+                if (!chkSelected[chk]) {
+                    formData.append(chk, '');
+                }
+            }
+
+            $.ajax({
+                url: action,
+                method: 'POST',
+                processData: false,
+                contentType: false,
+                data: formData,
+            }).done(function(data) {
+                formStateEls.hide();
+                form.find('> *').fadeOut();
+                form.find('[' + formStateName + '=success]').stop(1).fadeIn();
+            }).fail(function(data) {
+                formStateEls.hide();
+                form.find('[' + formStateName + '=error]').stop(1).fadeIn().delay(3000).fadeOut();
+            });
+        });
+    </script>
+</html>
