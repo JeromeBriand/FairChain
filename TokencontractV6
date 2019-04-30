@@ -1,0 +1,206 @@
+pragma solidity ^0.4.18;
+
+
+contract SafeMath {
+    function safeAdd(uint a, uint b) internal pure returns (uint c) {
+        c = a + b;
+        require(c >= a);
+    }
+    function safeSub(uint a, uint b) internal pure returns (uint c) {
+        require(b <= a);
+        c = a - b;
+    }
+    function safeMul(uint a, uint b) internal pure returns (uint c) {
+        c = a * b;
+        require(a == 0 || c / a == b);
+    }
+    function safeDiv(uint a, uint b) internal pure returns (uint c) {
+        require(b > 0);
+        c = a / b;
+    }
+}
+
+
+contract ERC20Interface {
+    function totalSupply() public constant returns (uint);
+    function balanceOf(address tokenOwner) public constant returns (uint balance);
+    function allowance(address tokenOwner, address spender) public constant returns (uint remaining);
+    function transfer(address to, uint tokens) public returns (bool success);
+    function approve(address spender, uint tokens) public returns (bool success);
+    function transferFrom(address from, address to, uint tokens) public returns (bool success);
+
+    event Transfer(address indexed from, address indexed to, uint tokens);
+    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+}
+
+
+
+contract ApproveAndCallFallBack {
+    function receiveApproval(address from, uint256 tokens, address token, bytes data) public;
+}
+
+contract Owned {
+    address public owner;
+    address public newOwner;
+
+    event OwnershipTransferred(address indexed _from, address indexed _to);
+
+    function Owned() public {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function transferOwnership(address _newOwner) public onlyOwner {
+        newOwner = _newOwner;
+    }
+    function acceptOwnership() public {
+        require(msg.sender == newOwner);
+        OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        newOwner = address(0);
+    }
+}
+
+
+
+//------------------------------------------------------------------------------
+
+contract FairChainToken is ERC20Interface, Owned, SafeMath {
+    string public symbol;
+    string public  name;
+    uint8 public decimals;
+    uint public _totalSupply;
+    uint public NAV;
+    uint public valoPart;
+    uint public discount;
+    uint public balanceETH;
+    uint public fundValue;
+    uint public initialReserve;
+   
+
+    mapping(address => uint) balances;
+    mapping(address => mapping(address => uint)) allowed;
+
+
+    constructor () public payable {
+        symbol = "FCT";
+        name = "FairChainToken";
+        decimals = 18;
+        _totalSupply = 10000000*10**18; // initialement, 1 token vaut 1 euro
+        balances[address(msg.sender)] = _totalSupply; // simule la levée de fonds intitiale à parité fixe
+        emit Transfer(address(0), address(msg.sender), _totalSupply);
+        NAV = 10**22; // exprimé ici en wei, en prenant 1 eth = 1000euros, sachant que la NAV en euro est de 10 milions. Dans cet exemple valeur fixe, mais parametre qui pourrait varier mensuellement en fonction de la valeur réelle des actifs sous-jacents.
+        valoPart = (NAV*10**18)/_totalSupply;  // vaut initialement 10^15, nombre de wei par token entier
+        discount = 20; // %
+        balanceETH = 0;
+        fundValue = NAV ;
+        initialReserve = msg.value; // pas exactement car ne compte pas les frais de transaction ; vrai pour l'ensemble du code d'ailleurs
+       
+    }
+
+
+
+
+    function totalSupply() public constant returns (uint) {
+        return( _totalSupply  - balances[address(0)]);
+    }
+
+
+    function balanceOf(address tokenOwner) public constant returns (uint balance) {
+        return balances[tokenOwner];
+    }
+    
+    function balanceEntier(address tokenOwner) public constant returns (uint balance) {
+        return balances[tokenOwner]/(10**18);
+    }
+
+ 
+    
+    function transfer(address to, uint tokens) public returns (bool success) {
+        balances[msg.sender] = safeSub(balances[msg.sender], tokens);
+        balances[to] = safeAdd(balances[to], tokens);
+        Transfer(msg.sender, to, tokens);
+        return true;
+    }
+
+
+    function approve(address spender, uint tokens) public returns (bool success) {
+        allowed[msg.sender][spender] = tokens;
+        Approval(msg.sender, spender, tokens);
+        return true;
+    }
+
+
+    function transferFrom(address from, address to, uint tokens) public returns (bool success) {
+        balances[from] = safeSub(balances[from], tokens);
+        allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
+        balances[to] = safeAdd(balances[to], tokens);
+        Transfer(from, to, tokens);
+        return true;
+    }
+
+
+    function allowance(address tokenOwner, address spender) public constant returns (uint remaining) {
+        return allowed[tokenOwner][spender];
+    }
+
+
+    function approveAndCall(address spender, uint tokens, bytes data) public returns (bool success) {
+        allowed[msg.sender][spender] = tokens;
+        Approval(msg.sender, spender, tokens);
+        ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokens, this, data);
+        return true;
+    }
+
+    function transferAnyERC20Token(address tokenAddress, uint tokens) public onlyOwner returns (bool success) {
+        return ERC20Interface(tokenAddress).transfer(owner, tokens);
+    }
+    
+    
+    //-----------------------------------------------------------------------------------
+    
+    function buy() public payable { // fonction d'achat, eth en entrée ! attention au calcul de l'eth envoyé!
+        
+        uint _tokensElem = ((msg.value)*((10**18)/(valoPart)))*(100-discount)/100; // nombre d'unite elementaires de tokens
+        balances[msg.sender] += _tokensElem;
+        _totalSupply += _tokensElem;
+        emit Transfer(owner, msg.sender, _tokensElem);
+        //owner.transfer(msg.value); ligne enleve car eth stocke dans le smart contract pour pouvoir faire les redeem
+        calculFundValue();
+        calculValoPart();
+        balanceETH += msg.value;
+            
+    }
+
+    function redeem(uint _tokens) public { //tokens entiers en entree
+        uint _tokensElem =  _tokens*10**18;
+        require(balances[msg.sender] >= _tokensElem, "insufficient balance");
+        balances[msg.sender] -= _tokensElem;
+        _totalSupply -= _tokensElem;
+        uint tokenToEth = ((_tokens*valoPart)*(100-discount))/100;
+        msg.sender.transfer(tokenToEth); 
+        emit Transfer(msg.sender, owner, _tokensElem);
+        calculFundValue();
+        calculValoPart();
+        balanceETH -= tokenToEth;
+    }
+
+    function setDiscount(uint _discount) public {
+        discount = _discount;
+    }
+
+
+    function calculValoPart() public {
+        valoPart = (fundValue*10**18)/_totalSupply; 
+    }
+    
+    function calculFundValue() public {
+        fundValue = NAV + address(this).balance ;
+    }
+    
+    
+}
